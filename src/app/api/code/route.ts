@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db-connect";
-import { ICodeInfo } from "@/types/global.types";
-import User from "@/models/user";
 import CodeInfo from "@/models/code-info";
 
 export async function GET(req: NextRequest) {
