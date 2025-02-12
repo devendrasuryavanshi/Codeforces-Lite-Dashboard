@@ -5,7 +5,7 @@ import { ICodeInfo } from "@/types/global.types";
 import User from "@/models/user";
 import CodeInfo from "@/models/code-info";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
     const cookieStore = await cookies();
     const authCode = cookieStore.get("authCode")?.value || "";
 
