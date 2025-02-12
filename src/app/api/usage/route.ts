@@ -8,28 +8,18 @@ export async function GET() {
     try {
         await connectDB();
 
-        const userData = await User.find().lean();
-        
-        if (!userData || userData.length === 0) {
-            return NextResponse.json({ 
-                success: false, 
-                message: "No users found" 
+        const data = await CodeInfo.find().populate("userId").select("-code");
+
+        if (!data) {
+            return NextResponse.json({
+                success: false,
+                message: "No data found"
             }, { status: 404 });
         }
 
-        const data = await Promise.all(
-            userData.map(async (user) => {
-                return await CodeInfo.find({ userId: user._id })
-                    .sort({ createdAt: -1 })
-                    .lean();
-            })
-        );
-
-        const flattenedData = data.filter(item => item.length > 0);
-
         return NextResponse.json({ 
             success: true, 
-            data: flattenedData 
+            data: data,
         }, { status: 200 });
 
     } catch (error) {
