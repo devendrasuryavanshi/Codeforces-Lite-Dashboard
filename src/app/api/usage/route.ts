@@ -20,7 +20,7 @@ export async function GET() {
     try {
         await connectDB();
 
-        const data = await CodeInfo.find().populate("userId").select("-code");
+        const data = await CodeInfo.find().populate("userId").select("-code").sort({ createdAt: -1 });
 
         if (!data) {
             return NextResponse.json({
