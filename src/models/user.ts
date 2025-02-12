@@ -1,5 +1,5 @@
 import { IUser } from '@/types/global.types';
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
 const codeforcesUserSchema: Schema<IUser> = new Schema({
     ip: { type: String, required: true },

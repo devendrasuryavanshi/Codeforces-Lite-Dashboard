@@ -1,5 +1,5 @@
 import { ICodeInfo } from '@/types/global.types';
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
 const codeInfoSchema: Schema<ICodeInfo> = new Schema({
     status: { type: String, required: true },
