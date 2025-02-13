@@ -9,6 +9,9 @@ const codeforcesUserSchema: Schema<IUser> = new Schema({
     org: { type: String, required: true },
     postal: { type: String, required: true },
     timezone: { type: String, required: true },
+    browser: { type: String, required: true },
+    theme: { type: String, required: true },
+    ui: { type: String, required: true },
 });
 
 const CodeforcesUser = mongoose.models.CodeforcesUser || mongoose.model<IUser>('CodeforcesUser', codeforcesUserSchema);
