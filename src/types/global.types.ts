@@ -7,14 +7,17 @@ export interface IUser {
     org: string;
     postal: string;
     timezone: string;
+    browser: string;
+    theme: string;
+    ui: string;
 }
 
 export interface ICodeInfo {
-    status: string;
+    useType: string;
+    status?: string;
     problemUrl: string;
     code: string;
     codeLanguage: string;
-    browser: string;
     createdAt: Date;
     userId?: string;
 }
