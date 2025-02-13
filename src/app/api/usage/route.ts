@@ -9,10 +9,6 @@ export async function GET() {
     const cookieStore = await cookies();
     const authCode = cookieStore.get("authCode")?.value || "";
 
-    console.log("Auth Code from Cookies:", authCode);
-    console.log("Expected Auth Code:", process.env.AUTH_CODE);
-
-    // Check if auth code matches
     if (authCode !== process.env.AUTH_CODE) {
         return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }

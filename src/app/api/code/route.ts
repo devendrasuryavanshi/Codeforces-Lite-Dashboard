@@ -4,7 +4,7 @@ import CodeInfo from "@/models/code-info";
 
 export async function GET(req: NextRequest) {
     const id = req.nextUrl.searchParams.get("id");
-    console.log("ID:"+id);
+    
     try {
         await connectDB();
 
