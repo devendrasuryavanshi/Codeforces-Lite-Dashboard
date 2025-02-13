@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import axios from 'axios'
 import { motion } from 'framer-motion'
 import { Code2, Globe, MapPin, User2 } from 'lucide-react'
