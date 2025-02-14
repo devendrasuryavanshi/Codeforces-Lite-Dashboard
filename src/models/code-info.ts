@@ -3,6 +3,7 @@ import mongoose, { Schema } from 'mongoose';
 
 const codeInfoSchema: Schema<ICodeInfo> = new Schema({
     status: { type: String },
+    problemName: { type: String },
     problemUrl: { type: String, required: true },
     code: { type: String, required: true },
     codeLanguage: { type: String, required: true },

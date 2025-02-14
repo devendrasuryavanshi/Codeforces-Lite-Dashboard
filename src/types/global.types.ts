@@ -14,6 +14,7 @@ export interface IUser {
 
 export interface ICodeInfo {
     status?: string;
+    problemName?: string;
     problemUrl: string;
     code: string;
     codeLanguage: string;
