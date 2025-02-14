@@ -34,3 +34,31 @@ body {
 .animate-blink {
   animation: blink 1.5s infinite;
 }
+
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(24, 24, 27, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(168, 85, 247, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgb(103, 51, 152), rgb(59, 130, 246));
+  border-radius: 2px;
+  border: 1px solid rgba(24, 24, 27, 0.95);
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgb(192, 132, 252), rgb(96, 165, 250));
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+}
+
+/* Firefox Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(168, 85, 247) rgba(24, 24, 27, 0.95);
+}

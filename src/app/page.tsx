@@ -13,7 +13,7 @@ const inter = Inter({ subsets: ['latin'] })
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })
 interface CodeData {
     _id: string
-    status?: string
+    status: string
     problemUrl: string
     codeLanguage: string
     createdAt: string
@@ -44,29 +44,40 @@ export default function Dashboard() {
     const router = useRouter()
 
     const statusConfig = {
+        'Submitted': {
+            shortName: 'SB',
+            color: 'bg-gray-500/15 border-gray-500/30 text-gray-400',
+            icon: <Clock size={16} className="text-gray-400" />,
+        },
         'Compilation Error': {
-            color: 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400',
-            icon: <AlertCircle size={16} className="text-yellow-400" />
+            shortName: 'CE',
+            color: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
+            icon: <AlertCircle size={16} className="text-amber-400" />,
         },
         'Time Limit Exceeded': {
-            color: 'bg-orange-500/20 border-orange-500/30 text-orange-400',
-            icon: <Timer size={16} className="text-orange-400" />
+            shortName: 'TLE',
+            color: 'bg-orange-600/15 border-orange-600/30 text-orange-400',
+            icon: <Timer size={16} className="text-orange-400" />,
         },
         'Memory Limit Exceeded': {
-            color: 'bg-blue-500/20 border-blue-500/30 text-blue-400',
-            icon: <Database size={16} className="text-blue-400" />
+            shortName: 'MLE',
+            color: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400',
+            icon: <Database size={16} className="text-cyan-400" />,
         },
         'Runtime Error': {
-            color: 'bg-red-500/20 border-red-500/30 text-red-400',
-            icon: <Bug size={16} className="text-red-400" />
+            shortName: 'RE',
+            color: 'bg-red-500/15 border-red-500/30 text-red-400',
+            icon: <Bug size={16} className="text-red-400" />,
         },
         'Wrong Answer': {
-            color: 'bg-rose-500/20 border-rose-500/30 text-rose-400',
-            icon: <X size={16} className="text-rose-400" />
+            shortName: 'WA',
+            color: 'bg-rose-600/15 border-rose-600/30 text-rose-400',
+            icon: <X size={16} className="text-rose-400" />,
         },
         'Accepted': {
-            color: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400',
-            icon: <Check size={16} className="text-emerald-400" />
+            shortName: 'AC',
+            color: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
+            icon: <Check size={16} className="text-emerald-400" />,
         }
     }
 
@@ -153,48 +164,56 @@ export default function Dashboard() {
                             key={submission._id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 items-center bg-gray-900/50 rounded-lg p-4 border border-purple-500/20 hover:border-purple-500/30 transition-all"
+                            className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 items-center bg-gray-900/40 backdrop-blur-sm rounded-xl p-4 border border-purple-600/20 hover:border-purple-500/40 hover:shadow-[0_0_15px_rgba(168,85,247,0.15)] transition-all duration-300"
                         >
                             {/* Status Badge */}
-                            <div className={`flex items-center gap-2 ${statusConfig[submission.status as keyof typeof statusConfig]?.color}`}>
-                                {statusConfig[submission.status as keyof typeof statusConfig]?.icon}
-                                <span className="text-sm font-medium">{submission.status}</span>
+                            <div className={`w-[80px] flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border ${statusConfig[submission.status as keyof typeof statusConfig]?.color}`}>
+                                {statusConfig[submission.status as keyof typeof statusConfig].icon}
+                                <span className={`text-sm font-semibold ${spaceGrotesk.className}`}>
+                                    {statusConfig[submission.status as keyof typeof statusConfig].shortName}
+                                </span>
                             </div>
 
-                            {/* Language */}
-                            <span className="text-purple-400 text-sm px-3 py-1.5 rounded-md bg-purple-500/10">
-                                {submission.codeLanguage}
-                            </span>
-
-                            {/* Location */}
-                            <div className="flex items-center gap-2 text-gray-400">
-                                <MapPin size={14} className="text-purple-400" />
-                                <span className="text-sm">{submission.userId.city}</span>
-                            </div>
-
-                            {/* Problem Link */}
-                            <motion.a
-                                whileHover={{ scale: 1.02 }}
+                            {/* Problem URL */}
+                            <a
                                 href={submission.problemUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-purple-400 hover:text-purple-300"
+                                className="text-gray-300 hover:text-purple-400 transition-colors text-sm truncate max-w-[500px]"
                             >
-                                <ExternalLink size={14} />
-                                <span className="text-sm">Problem</span>
-                            </motion.a>
+                                {submission.problemUrl}
+                            </a>
 
-                            {/* View Code Button */}
+                            {/* Location */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-900/20 border border-purple-500/20">
+                                <MapPin size={14} className="text-purple-400" />
+                                <span className="text-sm text-gray-300">{submission.userId.city}</span>
+                            </div>
+
+                            {/* Code Button */}
                             <motion.button
-                                whileHover={{ scale: 1.02 }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={() => fetchCode(submission._id)}
-                                className="flex items-center gap-1 text-purple-400 hover:text-purple-300"
+                                className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 hover:border-purple-500/50 text-purple-400 hover:text-purple-300 transition-all duration-200"
                             >
                                 <Code2 size={14} />
                                 <span className="text-sm">Code</span>
                             </motion.button>
+
+                            {/* Info Button */}
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleViewDetails(submission)}
+                                className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-gray-800/50 hover:bg-gray-800/70 border border-purple-500/20 hover:border-purple-500/40 text-purple-400 hover:text-purple-300 transition-all duration-200"
+                            >
+                                <Info size={14} />
+                                <span className="text-sm">Info</span>
+                            </motion.button>
                         </motion.div>
                     ))}
+
                 </div>
 
                 {/* Details Modal */}
