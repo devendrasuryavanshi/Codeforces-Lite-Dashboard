@@ -8,7 +8,13 @@ export async function GET(req: NextRequest) {
     try {
         await connectDB();
 
-        const data = await CodeInfo.findById(id).select("code");
+        // select code problemUrl and problemName
+        const data = await CodeInfo.findById(id).select({
+            problemUrl: 1,
+            problemName: 1,
+            code: 1,
+            codeLanguage: 1,
+        });
 
         if (!data) {
             return NextResponse.json({
