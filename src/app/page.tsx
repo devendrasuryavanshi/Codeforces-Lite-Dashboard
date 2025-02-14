@@ -3,14 +3,13 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, MapPin, AlertCircle, Check, X, Database, Timer, Bug, ExternalLink, Info, Code2, Network, Badge, FileCode, Globe, Copy, Palette, Chrome, BarChart3, Code, Award, Users, Activity, Zap, Brain } from 'lucide-react'
-import { Inter, Space_Grotesk } from 'next/font/google'
+import { Clock, MapPin, AlertCircle, Check, X, Database, Timer, Bug, ExternalLink, Info, Code2, Network, Badge, FileCode, Globe, Copy, Palette, Chrome, BarChart3, Code, Award, Activity, Zap, Brain } from 'lucide-react'
+import { Space_Grotesk } from 'next/font/google'
 import { useRouter } from 'next/navigation'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 import { InfoCard } from './components/InfoCard'
 
-const inter = Inter({ subsets: ['latin'] })
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })
 interface CodeData {
     _id: string
