@@ -442,6 +442,10 @@ export default function Dashboard() {
                                                         day: 'numeric',
                                                         month: 'short',
                                                         year: 'numeric'
+                                                    })} {new Date(submission.createdAt).toLocaleTimeString('en-US', {
+                                                        hour: 'numeric',
+                                                        minute: '2-digit',
+                                                        hour12: true
                                                     })}
                                                 </span>
                                             </div>
