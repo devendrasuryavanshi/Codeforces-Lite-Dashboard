@@ -2,15 +2,18 @@
 
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { motion } from 'framer-motion'
-import { Code2, Globe, MapPin, User2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Clock, MapPin, AlertCircle, Check, X, Database, Timer, Bug, ExternalLink, Info, Code2 } from 'lucide-react'
+import { Inter, Space_Grotesk } from 'next/font/google'
 import { useRouter } from 'next/navigation'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs'
+import { format } from 'date-fns'
 
+const inter = Inter({ subsets: ['latin'] })
+const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })
 interface CodeData {
     _id: string
-    useType: string
     status?: string
     problemUrl: string
     codeLanguage: string
@@ -35,9 +38,38 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true)
     const [selectedCode, setSelectedCode] = useState({ code: '', language: '' })
     const [showCodeModal, setShowCodeModal] = useState(false)
+    const [showDetailsModal, setShowDetailsModal] = useState(false)
+    const [selectedSubmission, setSelectedSubmission] = useState<CodeData | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [codeLoading, setCodeLoading] = useState(false)
     const router = useRouter()
+
+    const statusConfig = {
+        'Compilation Error': {
+            color: 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400',
+            icon: <AlertCircle size={16} className="text-yellow-400" />
+        },
+        'Time Limit Exceeded': {
+            color: 'bg-orange-500/20 border-orange-500/30 text-orange-400',
+            icon: <Timer size={16} className="text-orange-400" />
+        },
+        'Memory Limit Exceeded': {
+            color: 'bg-blue-500/20 border-blue-500/30 text-blue-400',
+            icon: <Database size={16} className="text-blue-400" />
+        },
+        'Runtime Error': {
+            color: 'bg-red-500/20 border-red-500/30 text-red-400',
+            icon: <Bug size={16} className="text-red-400" />
+        },
+        'Wrong Answer': {
+            color: 'bg-rose-500/20 border-rose-500/30 text-rose-400',
+            icon: <X size={16} className="text-rose-400" />
+        },
+        'Accepted': {
+            color: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400',
+            icon: <Check size={16} className="text-emerald-400" />
+        }
+    }
 
     useEffect(() => {
         fetchSubmissions()
@@ -47,6 +79,7 @@ export default function Dashboard() {
         try {
             const response = await axios.get('/api/usage')
             setSubmissions(response.data.data)
+            console.log(response.data.data)
             setError(null)
         } catch (error) {
             if (axios.isAxiosError(error) && error.response?.status === 401) {
@@ -79,109 +112,195 @@ export default function Dashboard() {
             setCodeLoading(false)
         }
     }
+    const handleViewDetails = (submission: CodeData) => {
+        setSelectedSubmission(submission)
+        setShowDetailsModal(true)
+    }
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
-                <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500" />
+            <div className="min-h-screen flex items-center justify-center bg-black">
+                <div className="animate-pulse text-4xl font-bold text-purple-500">
+                    Loading<span className="animate-blink">...</span>
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 p-8">
+        <div className="min-h-screen bg-black p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
-                <h1 className="text-4xl font-bold text-white mb-8">Codeforces Submissions</h1>
+                <motion.h1
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 mb-8"
+                >
+                    Codeforces Submissions
+                </motion.h1>
 
                 {error && (
-                    <div className="bg-red-500/20 text-red-400 p-4 rounded-lg mb-6">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6"
+                    >
                         {error}
-                    </div>
+                    </motion.div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-4">
                     {submissions.map((submission) => (
                         <motion.div
                             key={submission._id}
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="bg-gray-800 rounded-lg p-6 shadow-lg hover:shadow-xl transition-all"
+                            className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 items-center bg-gray-900/50 rounded-lg p-4 border border-purple-500/20 hover:border-purple-500/30 transition-all"
                         >
-                            <div className="flex items-center gap-2 mb-4">
-                                <div className={`px-3 py-1 rounded-full text-sm ${submission.status === 'Accepted'
-                                        ? 'bg-green-500/20 text-green-400'
-                                        : 'bg-red-500/20 text-red-400'
-                                    }`}>
-                                    {submission.status}
-                                </div>
+                            {/* Status Badge */}
+                            <div className={`flex items-center gap-2 ${statusConfig[submission.status as keyof typeof statusConfig]?.color}`}>
+                                {statusConfig[submission.status as keyof typeof statusConfig]?.icon}
+                                <span className="text-sm font-medium">{submission.status}</span>
                             </div>
 
-                            <a
+                            {/* Language */}
+                            <span className="text-purple-400 text-sm px-3 py-1.5 rounded-md bg-purple-500/10">
+                                {submission.codeLanguage}
+                            </span>
+
+                            {/* Location */}
+                            <div className="flex items-center gap-2 text-gray-400">
+                                <MapPin size={14} className="text-purple-400" />
+                                <span className="text-sm">{submission.userId.city}</span>
+                            </div>
+
+                            {/* Problem Link */}
+                            <motion.a
+                                whileHover={{ scale: 1.02 }}
                                 href={submission.problemUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-400 hover:text-blue-300 flex items-center gap-2 mb-4"
+                                className="flex items-center gap-1 text-purple-400 hover:text-purple-300"
                             >
-                                <Globe size={16} />
-                                Problem Link
-                            </a>
+                                <ExternalLink size={14} />
+                                <span className="text-sm">Problem</span>
+                            </motion.a>
 
-                            <div className="flex items-center gap-2 text-gray-300 mb-2">
-                                <MapPin size={16} />
-                                {submission.userId.city}, {submission.userId.region}
-                            </div>
-
-                            <div className="flex items-center gap-2 text-gray-300 mb-4">
-                                <User2 size={16} />
-                                {submission.userId.ip}
-                            </div>
-
+                            {/* View Code Button */}
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.02 }}
                                 onClick={() => fetchCode(submission._id)}
-                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+                                className="flex items-center gap-1 text-purple-400 hover:text-purple-300"
                             >
-                                <Code2 size={16} />
-                                View Code
+                                <Code2 size={14} />
+                                <span className="text-sm">Code</span>
                             </motion.button>
                         </motion.div>
                     ))}
                 </div>
 
-                {showCodeModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                {/* Details Modal */}
+                <AnimatePresence>
+                    {showDetailsModal && selectedSubmission && (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
                         >
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-xl text-white">Code ({selectedCode.language})</h3>
-                                <button
-                                    onClick={() => setShowCodeModal(false)}
-                                    className="text-gray-400 hover:text-white transition-colors"
-                                >
-                                    ✕
-                                </button>
-                            </div>
-                            {codeLoading ? (
-                                <div className="flex justify-center p-8">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                className="bg-gray-900 rounded-lg p-6 w-full max-w-2xl border border-purple-500/20"
+                            >
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl text-purple-400 font-semibold">Submission Details</h3>
+                                    <button
+                                        onClick={() => setShowDetailsModal(false)}
+                                        className="text-gray-400 hover:text-white p-1"
+                                    >
+                                        <X size={20} />
+                                    </button>
                                 </div>
-                            ) : (
-                                <SyntaxHighlighter
-                                    language={selectedCode.language.toLowerCase()}
-                                    style={dracula}
-                                    className="rounded-md"
-                                >
-                                    {selectedCode.code}
-                                </SyntaxHighlighter>
-                            )}
+
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <DetailItem label="Status" value={selectedSubmission.status || 'N/A'} />
+                                        <DetailItem label="Language" value={selectedSubmission.codeLanguage} />
+                                        <DetailItem label="City" value={selectedSubmission.userId.city} />
+                                        <DetailItem label="Region" value={selectedSubmission.userId.region} />
+                                        <DetailItem label="Country" value={selectedSubmission.userId.country} />
+                                        <DetailItem label="IP" value={selectedSubmission.userId.ip} />
+                                        <DetailItem label="Browser" value={selectedSubmission.userId.browser} />
+                                        <DetailItem label="Timezone" value={selectedSubmission.userId.timezone} />
+                                    </div>
+
+                                    <a
+                                        href={selectedSubmission.problemUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 text-purple-400 hover:text-purple-300 mt-4"
+                                    >
+                                        <ExternalLink size={16} />
+                                        Open Problem
+                                    </a>
+                                </div>
+                            </motion.div>
                         </motion.div>
-                    </div>
-                )}
+                    )}
+                </AnimatePresence>
+
+                {/* Code Modal */}
+                <AnimatePresence>
+                    {showCodeModal && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                className="bg-gray-900 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto border border-purple-500/20"
+                            >
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl text-purple-400 font-semibold">
+                                        Code ({selectedCode.language})
+                                    </h3>
+                                    <button
+                                        onClick={() => setShowCodeModal(false)}
+                                        className="text-gray-400 hover:text-white p-1"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                                {codeLoading ? (
+                                    <div className="flex justify-center p-8">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500" />
+                                    </div>
+                                ) : (
+                                    <SyntaxHighlighter
+                                        language={selectedCode.language.toLowerCase()}
+                                        style={dracula}
+                                        className="rounded-md"
+                                    >
+                                        {selectedCode.code}
+                                    </SyntaxHighlighter>
+                                )}
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     )
 }
+
+const DetailItem = ({ label, value }: { label: string; value: string }) => (
+    <div className="bg-gray-800/50 p-3 rounded-lg">
+        <div className="text-sm text-gray-400 mb-1">{label}</div>
+        <div className="text-white truncate">{value}</div>
+    </div>
+)
