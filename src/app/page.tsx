@@ -3,17 +3,19 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, MapPin, AlertCircle, Check, X, Database, Timer, Bug, ExternalLink, Info, Code2 } from 'lucide-react'
+import { Clock, MapPin, AlertCircle, Check, X, Database, Timer, Bug, ExternalLink, Info, Code2, Network, Badge, FileCode, Globe, Copy, Palette, Chrome, BarChart3, Code, Award, Users, Activity, Zap, Brain } from 'lucide-react'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import { useRouter } from 'next/navigation'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs'
+import { InfoCard } from './components/InfoCard'
 
 const inter = Inter({ subsets: ['latin'] })
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })
 interface CodeData {
     _id: string
     status: string
+    problemName: string;
     problemUrl: string
     codeLanguage: string
     createdAt: string
@@ -32,16 +34,34 @@ interface CodeData {
     }
 }
 
+interface Statistics {
+    totalSubmissions: number
+    acceptedSubmissions: number
+    uniqueProblems: number
+    activeStreak: number
+    languages: { [key: string]: number }
+    successRate: number
+}
+
 export default function Dashboard() {
     const [submissions, setSubmissions] = useState<CodeData[]>([])
     const [loading, setLoading] = useState(true)
-    const [selectedCode, setSelectedCode] = useState({ code: '', language: '' })
+    const [selectedCodeData, setSelectedCodeData] = useState({ code: '', problemName: '', problemUrl: '', codeLanguage: '' })
     const [showCodeModal, setShowCodeModal] = useState(false)
     const [showDetailsModal, setShowDetailsModal] = useState(false)
     const [selectedSubmission, setSelectedSubmission] = useState<CodeData | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [codeLoading, setCodeLoading] = useState(false)
     const router = useRouter()
+
+    const [stats, setStats] = useState<Statistics>({
+        totalSubmissions: 0,
+        acceptedSubmissions: 0,
+        uniqueProblems: 0,
+        activeStreak: 0,
+        languages: {},
+        successRate: 0
+    })
 
     const statusConfig = {
         'Submitted': {
@@ -81,9 +101,91 @@ export default function Dashboard() {
         }
     }
 
+    // Update the calculateStreak function
+    const calculateStreak = (submissions: CodeData[]): number => {
+        if (submissions.length === 0) return 0;
+
+        const sortedSubmissions = [...submissions].sort((a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let streak = 0;
+        let currentDate = new Date(sortedSubmissions[0].createdAt);
+        currentDate.setHours(0, 0, 0, 0);
+
+        // Check if the last submission is within last 24 hours
+        if ((today.getTime() - currentDate.getTime()) > (86400000 * 2)) {
+            return 0;
+        }
+
+        const seenDates = new Set();
+
+        for (const submission of sortedSubmissions) {
+            const submissionDate = new Date(submission.createdAt);
+            submissionDate.setHours(0, 0, 0, 0);
+            const dateStr = submissionDate.toISOString().split('T')[0];
+
+            if (!seenDates.has(dateStr)) {
+                seenDates.add(dateStr);
+
+                if (streak === 0 ||
+                    (currentDate.getTime() - submissionDate.getTime()) === 86400000) {
+                    streak++;
+                    currentDate = submissionDate;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        return streak;
+    };
+
+    const calculateStatistics = (submissions: CodeData[]): Statistics => {
+        const totalSubmissions = submissions.length;
+        const acceptedSubmissions = submissions.filter(s => s.status === 'Accepted').length;
+
+        const uniqueProblems = new Set(submissions.map(s => s.problemUrl)).size;
+
+        const languages = submissions.reduce((acc: { [key: string]: number }, curr) => {
+            const lang = curr.codeLanguage;
+            acc[lang] = (acc[lang] || 0) + 1;
+            return acc;
+        }, {});
+
+        const successRate = totalSubmissions > 0
+            ? (acceptedSubmissions / totalSubmissions) * 100
+            : 0;
+
+        const streak = calculateStreak(submissions);
+
+        return {
+            totalSubmissions,
+            acceptedSubmissions,
+            uniqueProblems,
+            activeStreak: streak,
+            languages,
+            successRate
+        };
+    };
+
     useEffect(() => {
-        fetchSubmissions()
-    }, [])
+        const fetchAndCalculateStats = async () => {
+            await fetchSubmissions();
+        };
+
+        fetchAndCalculateStats();
+    }, []);
+
+    useEffect(() => {
+        if (submissions.length > 0) {
+            const calculatedStats = calculateStatistics(submissions);
+            setStats(calculatedStats);
+        }
+    }, [submissions]);
 
     const fetchSubmissions = async () => {
         try {
@@ -106,10 +208,14 @@ export default function Dashboard() {
         setCodeLoading(true)
         try {
             const response = await axios.get(`/api/code?id=${id}`)
-            setSelectedCode({
+            setSelectedCodeData({
+                problemUrl: response.data.data.problemUrl,
+                problemName: response.data.data.problemName,
                 code: response.data.data.code,
-                language: submissions.find(sub => sub._id === id)?.codeLanguage || ''
+                codeLanguage: response.data.data.codeLanguage
             })
+
+            console.log(response.data);
             setShowCodeModal(true)
             setError(null)
         } catch (error) {
@@ -148,6 +254,138 @@ export default function Dashboard() {
                     Codeforces Submissions
                 </motion.h1>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-gradient-to-br from-purple-900/40 to-black rounded-xl p-4 border border-purple-500/30 hover:border-purple-500/50 transition-all duration-300"
+                    >
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 rounded-lg bg-purple-500/20">
+                                <Code size={20} className="text-purple-400" />
+                            </div>
+                            <h3 className="text-gray-400">Total Submissions</h3>
+                        </div>
+                        <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                            {stats.totalSubmissions}
+                        </p>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="bg-gradient-to-br from-emerald-900/40 to-black rounded-xl p-4 border border-emerald-500/30 hover:border-emerald-500/50 transition-all duration-300"
+                    >
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 rounded-lg bg-emerald-500/20">
+                                <Award size={20} className="text-emerald-400" />
+                            </div>
+                            <h3 className="text-gray-400">Success Rate</h3>
+                        </div>
+                        <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-600">
+                            {stats.successRate.toFixed(1)}%
+                        </p>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-gradient-to-br from-pink-900/40 to-black rounded-xl p-4 border border-pink-500/30 hover:border-pink-500/50 transition-all duration-300"
+                    >
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 rounded-lg bg-pink-500/20">
+                                <Brain size={20} className="text-pink-400" />
+                            </div>
+                            <h3 className="text-gray-400">Unique Problems</h3>
+                        </div>
+                        <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-rose-600">
+                            {stats.uniqueProblems}
+                        </p>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="bg-gradient-to-br from-blue-900/40 to-black rounded-xl p-4 border border-blue-500/30 hover:border-blue-500/50 transition-all duration-300"
+                    >
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 rounded-lg bg-blue-500/20">
+                                <Zap size={20} className="text-blue-400" />
+                            </div>
+                            <h3 className="text-gray-400">Active Streak</h3>
+                        </div>
+                        <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-600">
+                            {stats.activeStreak} days
+                        </p>
+                    </motion.div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="bg-gradient-to-br from-gray-900/90 to-black rounded-xl p-4 border border-purple-500/30 hover:border-purple-500/50 transition-all duration-300"
+                    >
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 rounded-lg bg-purple-500/20">
+                                <BarChart3 size={20} className="text-purple-400" />
+                            </div>
+                            <h3 className="text-gray-200">Languages Used</h3>
+                        </div>
+                        <div className="space-y-3">
+                            {Object.entries(stats.languages).map(([lang, count]) => (
+                                <div key={lang} className="flex items-center gap-3">
+                                    <div className="flex-1 bg-purple-500/10 rounded-full h-2">
+                                        <div
+                                            className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full"
+                                            style={{ width: `${(count / stats.totalSubmissions) * 100}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-sm text-gray-400 min-w-[100px]">
+                                        {lang} ({count})
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="bg-gradient-to-br from-gray-900/90 to-black rounded-xl p-4 border border-purple-500/30 hover:border-purple-500/50 transition-all duration-300"
+                    >
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 rounded-lg bg-purple-500/20">
+                                <Activity size={20} className="text-purple-400" />
+                            </div>
+                            <h3 className="text-gray-200">Submission Status</h3>
+                        </div>
+                        <div className="space-y-3">
+                            {Object.entries(
+                                submissions.reduce((acc, curr) => {
+                                    acc[curr.status] = (acc[curr.status] || 0) + 1
+                                    return acc
+                                }, {} as { [key: string]: number })
+                            ).map(([status, count]) => (
+                                <div key={status} className="flex items-center gap-3">
+                                    <div className="flex-1 bg-purple-500/10 rounded-full h-2">
+                                        <div
+                                            className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full"
+                                            style={{ width: `${(count / stats.totalSubmissions) * 100}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-sm text-gray-400 min-w-[150px]">
+                                        {status} ({count})
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                </div>
+
                 {error && (
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -158,110 +396,160 @@ export default function Dashboard() {
                     </motion.div>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {submissions.map((submission) => (
                         <motion.div
                             key={submission._id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 items-center bg-gray-900/40 backdrop-blur-sm rounded-xl p-4 border border-purple-600/20 hover:border-purple-500/40 hover:shadow-[0_0_15px_rgba(168,85,247,0.15)] transition-all duration-300"
+                            className="group relative overflow-hidden bg-gradient-to-r from-gray-900/90 to-black rounded-2xl p-4 md:p-5 border border-purple-500/20 hover:border-purple-500/40 shadow-lg hover:shadow-purple-500/10 transition-all duration-300"
                         >
-                            {/* Status Badge */}
-                            <div className={`w-[80px] flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border ${statusConfig[submission.status as keyof typeof statusConfig]?.color}`}>
-                                {statusConfig[submission.status as keyof typeof statusConfig].icon}
-                                <span className={`text-sm font-semibold ${spaceGrotesk.className}`}>
-                                    {statusConfig[submission.status as keyof typeof statusConfig].shortName}
-                                </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                            <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 flex-1">
+                                    <div className={`flex items-center justify-center w-auto sm:w-[70px] gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl backdrop-blur-sm ${statusConfig[submission.status as keyof typeof statusConfig]?.color}`}>
+                                        <div className="rounded-lg">
+                                            {statusConfig[submission.status as keyof typeof statusConfig].icon}
+                                        </div>
+                                        <span className={`text-sm font-bold tracking-wide ${spaceGrotesk.className}`}>
+                                            {statusConfig[submission.status as keyof typeof statusConfig].shortName}
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-2 flex-1 min-w-0">
+                                        <a
+                                            href={submission.problemUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-2 text-gray-200 hover:text-purple-400 transition-colors group"
+                                        >
+                                            <ExternalLink size={16} className="opacity-50 group-hover:opacity-100 flex-shrink-0" />
+                                            <span className="text-sm font-medium truncate">
+                                                {submission.problemName || submission.problemUrl}
+                                            </span>
+                                        </a>
+
+                                        <div className="hidden md:flex items-center gap-4">
+                                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                                                <Globe size={14} className="text-purple-400" />
+                                                <span>{submission.userId.city}, {submission.userId.country}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                                                <Clock size={14} className="text-purple-400" />
+                                                <span>
+                                                    {new Date(submission.createdAt).toLocaleDateString('en-US', {
+                                                        day: 'numeric',
+                                                        month: 'short',
+                                                        year: 'numeric'
+                                                    })}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Mobile timestamp only */}
+                                        <div className="md:hidden flex items-center gap-2 text-sm text-gray-400">
+                                            <Clock size={14} className="text-purple-400" />
+                                            <span>
+                                                {new Date(submission.createdAt).toLocaleDateString('en-US', {
+                                                    day: 'numeric',
+                                                    month: 'short'
+                                                })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => fetchCode(submission._id)}
+                                        className="flex items-center justify-center gap-2 px-4 py-2 md:px-5 md:py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 hover:border-purple-500/50 text-purple-400 hover:text-purple-300 transition-all duration-200 flex-1 sm:flex-initial"
+                                    >
+                                        <Code2 size={16} />
+                                        <span className="font-medium">Code</span>
+                                    </motion.button>
+
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => handleViewDetails(submission)}
+                                        className="p-2.5 rounded-xl bg-gray-800/50 hover:bg-gray-800/70 border border-purple-500/20 hover:border-purple-500/40 text-purple-400 hover:text-purple-300 transition-all duration-200"
+                                    >
+                                        <Info size={16} />
+                                    </motion.button>
+                                </div>
                             </div>
-
-                            {/* Problem URL */}
-                            <a
-                                href={submission.problemUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-300 hover:text-purple-400 transition-colors text-sm truncate max-w-[500px]"
-                            >
-                                {submission.problemUrl}
-                            </a>
-
-                            {/* Location */}
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-900/20 border border-purple-500/20">
-                                <MapPin size={14} className="text-purple-400" />
-                                <span className="text-sm text-gray-300">{submission.userId.city}</span>
-                            </div>
-
-                            {/* Code Button */}
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => fetchCode(submission._id)}
-                                className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 hover:border-purple-500/50 text-purple-400 hover:text-purple-300 transition-all duration-200"
-                            >
-                                <Code2 size={14} />
-                                <span className="text-sm">Code</span>
-                            </motion.button>
-
-                            {/* Info Button */}
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleViewDetails(submission)}
-                                className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-gray-800/50 hover:bg-gray-800/70 border border-purple-500/20 hover:border-purple-500/40 text-purple-400 hover:text-purple-300 transition-all duration-200"
-                            >
-                                <Info size={14} />
-                                <span className="text-sm">Info</span>
-                            </motion.button>
                         </motion.div>
                     ))}
-
                 </div>
 
-                {/* Details Modal */}
+                {/* Information Modal */}
                 <AnimatePresence>
                     {showDetailsModal && selectedSubmission && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                            className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 z-50"
                         >
                             <motion.div
                                 initial={{ scale: 0.9, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0.9, opacity: 0 }}
-                                className="bg-gray-900 rounded-lg p-6 w-full max-w-2xl border border-purple-500/20"
+                                className="bg-gradient-to-br from-gray-900 to-black rounded-xl p-8 w-full max-w-2xl border border-purple-500/30 shadow-[0_0_25px_rgba(168,85,247,0.15)]"
                             >
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl text-purple-400 font-semibold">Submission Details</h3>
+                                <div className="flex justify-between items-center mb-8">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                                            <FileCode size={24} className="text-purple-400" />
+                                        </div>
+                                        <h3 className="text-2xl text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 font-bold">
+                                            Submission Details
+                                        </h3>
+                                    </div>
                                     <button
                                         onClick={() => setShowDetailsModal(false)}
-                                        className="text-gray-400 hover:text-white p-1"
+                                        className="p-2 rounded-lg hover:bg-purple-500/10 text-gray-400 hover:text-purple-400 transition-all duration-200"
                                     >
                                         <X size={20} />
                                     </button>
                                 </div>
 
-                                <div className="space-y-4">
+                                <div className="space-y-6">
                                     <div className="grid grid-cols-2 gap-4">
-                                        <DetailItem label="Status" value={selectedSubmission.status || 'N/A'} />
-                                        <DetailItem label="Language" value={selectedSubmission.codeLanguage} />
-                                        <DetailItem label="City" value={selectedSubmission.userId.city} />
-                                        <DetailItem label="Region" value={selectedSubmission.userId.region} />
-                                        <DetailItem label="Country" value={selectedSubmission.userId.country} />
-                                        <DetailItem label="IP" value={selectedSubmission.userId.ip} />
-                                        <DetailItem label="Browser" value={selectedSubmission.userId.browser} />
-                                        <DetailItem label="Timezone" value={selectedSubmission.userId.timezone} />
+                                        <div className="col-span-2 flex items-center gap-3 p-4 rounded-lg bg-purple-900/20 border border-purple-500/30">
+                                            <Badge size={18} className="text-purple-400" />
+                                            <div>
+                                                <div className="text-sm text-purple-300 mb-1">Status</div>
+                                                <div className="text-lg font-semibold text-white">{selectedSubmission.status}</div>
+                                            </div>
+                                        </div>
+
+                                        <InfoCard icon={Code2} label="Language" value={selectedSubmission.codeLanguage} />
+                                        <InfoCard icon={MapPin} label="Location" value={`${selectedSubmission.userId.city}, ${selectedSubmission.userId.country}`} />
+                                        <InfoCard icon={Globe} label="Region" value={selectedSubmission.userId.region} />
+                                        <InfoCard icon={Network} label="IP Address" value={selectedSubmission.userId.ip} />
+                                        <InfoCard icon={Palette} label="Theme" value={selectedSubmission.userId.theme} />
+                                        <InfoCard icon={Chrome} label="Browser" value={selectedSubmission.userId.browser} />
                                     </div>
 
-                                    <a
-                                        href={selectedSubmission.problemUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-2 text-purple-400 hover:text-purple-300 mt-4"
-                                    >
-                                        <ExternalLink size={16} />
-                                        Open Problem
-                                    </a>
+                                    <div className="flex justify-between items-center pt-4 border-t border-purple-500/20">
+                                        <div className="flex items-center gap-2">
+                                            <Clock size={16} className="text-purple-400" />
+                                            <span className="text-sm text-purple-300">{selectedSubmission.userId.timezone}</span>
+                                        </div>
+                                        <a
+                                            href={selectedSubmission.problemUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:text-purple-300 transition-all duration-200"
+                                        >
+                                            <ExternalLink size={16} />
+                                            View Problem
+                                        </a>
+                                    </div>
                                 </div>
                             </motion.div>
                         </motion.div>
@@ -275,50 +563,91 @@ export default function Dashboard() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                            className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 z-50"
                         >
                             <motion.div
                                 initial={{ scale: 0.9, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0.9, opacity: 0 }}
-                                className="bg-gray-900 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto border border-purple-500/20"
+                                className="bg-gradient-to-br from-gray-900 via-gray-900 to-black rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-purple-500/30 shadow-[0_0_30px_rgba(168,85,247,0.15)]"
                             >
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-xl text-purple-400 font-semibold">
-                                        Code ({selectedCode.language})
-                                    </h3>
-                                    <button
-                                        onClick={() => setShowCodeModal(false)}
-                                        className="text-gray-400 hover:text-white p-1"
-                                    >
-                                        <X size={20} />
-                                    </button>
-                                </div>
-                                {codeLoading ? (
-                                    <div className="flex justify-center p-8">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500" />
+                                <div className="p-4 border-b border-purple-500/20 bg-black/40">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                                                <FileCode size={20} className="text-purple-400" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                                                    <a
+                                                        href={selectedCodeData.problemUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="transition-opacity flex items-center gap-2"
+                                                    >
+                                                        {selectedCodeData.problemName || selectedCodeData.problemUrl}
+                                                        <ExternalLink size={16} className="opacity-50 group-hover:opacity-100" />
+                                                    </a>
+                                                </h3>
+                                                <p className="text-sm text-gray-400">
+                                                    Language: {selectedCodeData.codeLanguage}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => navigator.clipboard.writeText(selectedCodeData.code)}
+                                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:text-purple-300 transition-all duration-200"
+                                            >
+                                                <Copy size={14} />
+                                                <span className="text-sm">Copy</span>
+                                            </motion.button>
+                                            <button
+                                                onClick={() => setShowCodeModal(false)}
+                                                className="p-2 rounded-lg hover:bg-purple-500/10 text-gray-400 hover:text-purple-400 transition-all duration-200"
+                                            >
+                                                <X size={20} />
+                                            </button>
+                                        </div>
                                     </div>
-                                ) : (
-                                    <SyntaxHighlighter
-                                        language={selectedCode.language.toLowerCase()}
-                                        style={dracula}
-                                        className="rounded-md"
-                                    >
-                                        {selectedCode.code}
-                                    </SyntaxHighlighter>
-                                )}
+                                </div>
+                                <div className="flex-1 overflow-auto p-4">
+                                    {codeLoading ? (
+                                        <div className="flex justify-center items-center p-8">
+                                            <div className="relative">
+                                                <div className="animate-spin rounded-full h-12 w-12 border-2 border-purple-500/20 border-t-purple-500" />
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <Code2 size={16} className="text-purple-400" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-lg border border-purple-500/20 bg-black/40">
+                                            <SyntaxHighlighter
+                                                language={selectedCodeData.codeLanguage.toLowerCase()}
+                                                style={dracula}
+                                                customStyle={{
+                                                    background: 'transparent',
+                                                    padding: '1.5rem',
+                                                    margin: 0,
+                                                    fontSize: '0.9rem',
+                                                }}
+                                                showLineNumbers={true}
+                                                wrapLines={true}
+                                            >
+                                                {selectedCodeData.code}
+                                            </SyntaxHighlighter>
+                                        </div>
+                                    )}
+                                </div>
                             </motion.div>
                         </motion.div>
                     )}
                 </AnimatePresence>
+
             </div>
         </div>
     )
 }
-
-const DetailItem = ({ label, value }: { label: string; value: string }) => (
-    <div className="bg-gray-800/50 p-3 rounded-lg">
-        <div className="text-sm text-gray-400 mb-1">{label}</div>
-        <div className="text-white truncate">{value}</div>
-    </div>
-)
