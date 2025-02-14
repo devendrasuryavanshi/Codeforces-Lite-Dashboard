@@ -24,6 +24,7 @@ export default function AuthPage() {
       router.push('/')
     } catch (error) {
       setError('Invalid authentication code')
+      console.log(error);
     } finally {
       setLoading(false)
     }
