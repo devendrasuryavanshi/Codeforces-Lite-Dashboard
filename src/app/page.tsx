@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 import { InfoCard } from './components/InfoCard'
+import { toast } from 'react-hot-toast'
 
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })
 interface CodeData {
@@ -100,7 +101,6 @@ export default function Dashboard() {
         }
     }
 
-    // Update the calculateStreak function
     const calculateStreak = (submissions: CodeData[]): number => {
         if (submissions.length === 0) return 0;
 
@@ -115,7 +115,6 @@ export default function Dashboard() {
         let currentDate = new Date(sortedSubmissions[0].createdAt);
         currentDate.setHours(0, 0, 0, 0);
 
-        // Check if the last submission is within last 24 hours
         if ((today.getTime() - currentDate.getTime()) > (86400000 * 2)) {
             return 0;
         }
@@ -601,7 +600,10 @@ export default function Dashboard() {
                                             <motion.button
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
-                                                onClick={() => navigator.clipboard.writeText(selectedCodeData.code)}
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(selectedCodeData.code)
+                                                    toast.success('Code copied to clipboard')
+                                                }}
                                                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:text-purple-300 transition-all duration-200"
                                             >
                                                 <Copy size={14} />
