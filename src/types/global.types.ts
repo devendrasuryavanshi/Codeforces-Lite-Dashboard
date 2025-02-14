@@ -13,7 +13,6 @@ export interface IUser {
 }
 
 export interface ICodeInfo {
-    useType: string;
     status?: string;
     problemUrl: string;
     code: string;

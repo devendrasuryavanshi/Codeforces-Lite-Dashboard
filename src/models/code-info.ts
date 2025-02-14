@@ -2,7 +2,6 @@ import { ICodeInfo } from '@/types/global.types';
 import mongoose, { Schema } from 'mongoose';
 
 const codeInfoSchema: Schema<ICodeInfo> = new Schema({
-    useType: { type: String, required: true },
     status: { type: String },
     problemUrl: { type: String, required: true },
     code: { type: String, required: true },

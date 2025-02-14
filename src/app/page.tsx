@@ -8,7 +8,6 @@ import { Inter, Space_Grotesk } from 'next/font/google'
 import { useRouter } from 'next/navigation'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs'
-import { format } from 'date-fns'
 
 const inter = Inter({ subsets: ['latin'] })
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })
