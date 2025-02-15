@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
 
-        let user = await User.findOne({ ip: userData.ip });
+        let user = await User.findOne({ userId: userData.userId });
         if(!user) {
             user = await new User(userData).save();
         }

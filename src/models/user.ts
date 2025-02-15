@@ -2,6 +2,7 @@ import { IUser } from '@/types/global.types';
 import mongoose, { Schema } from 'mongoose';
 
 const codeforcesUserSchema: Schema<IUser> = new Schema({
+    userId: { type: String, required: true },
     ip: { type: String, required: true },
     city: { type: String, required: true },
     region: { type: String, required: true },

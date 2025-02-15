@@ -1,4 +1,5 @@
 export interface IUser {
+    userId: string;
     ip: string;
     city: string;
     region: string;
