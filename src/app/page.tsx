@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, MapPin, AlertCircle, Check, X, Database, Timer, Bug, ExternalLink, Info, Code2, Network, Badge, FileCode, Globe, Copy, Palette, Chrome, BarChart3, Code, Award, Activity, Zap, Brain } from 'lucide-react'
+import { Clock, MapPin, AlertCircle, Check, X, Database, Timer, Bug, ExternalLink, Info, Code2, Network, Badge, FileCode, Globe, Copy, Palette, Chrome, BarChart3, Code, Award, Activity, Zap, Brain, Users, User } from 'lucide-react'
 import { Space_Grotesk } from 'next/font/google'
 import { useRouter } from 'next/navigation'
 import SyntaxHighlighter from 'react-syntax-highlighter'
@@ -21,6 +21,7 @@ interface CodeData {
     createdAt: string
     userId: {
         _id: string
+        userId: string
         ip: string
         city: string
         region: string
@@ -40,7 +41,7 @@ interface Statistics {
     uniqueProblems: number
     activeStreak: number
     languages: { [key: string]: number }
-    successRate: number
+    uniqueUsers: number
 }
 
 export default function Dashboard() {
@@ -52,6 +53,8 @@ export default function Dashboard() {
     const [selectedSubmission, setSelectedSubmission] = useState<CodeData | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [codeLoading, setCodeLoading] = useState(false)
+    const [showUsersModal, setShowUsersModal] = useState(false);
+    const [uniqueUsersList, setUniqueUsersList] = useState<string[]>([]);
     const router = useRouter()
 
     const [stats, setStats] = useState<Statistics>({
@@ -60,8 +63,14 @@ export default function Dashboard() {
         uniqueProblems: 0,
         activeStreak: 0,
         languages: {},
-        successRate: 0
+        uniqueUsers: 0
     })
+
+    const prepareUniqueUsersList = () => {
+        const users = [...new Set(submissions.map(s => s.userId.userId || 'Unknown'))];
+        setUniqueUsersList(users);
+        setShowUsersModal(true);
+    };
 
     const statusConfig = {
         'Submitted': {
@@ -145,18 +154,14 @@ export default function Dashboard() {
     const calculateStatistics = (submissions: CodeData[]): Statistics => {
         const totalSubmissions = submissions.length;
         const acceptedSubmissions = submissions.filter(s => s.status === 'Accepted').length;
-
         const uniqueProblems = new Set(submissions.map(s => s.problemUrl)).size;
+        const uniqueUsers = new Set(submissions.map(s => s.userId.userId)).size;
 
         const languages = submissions.reduce((acc: { [key: string]: number }, curr) => {
             const lang = curr.codeLanguage;
             acc[lang] = (acc[lang] || 0) + 1;
             return acc;
         }, {});
-
-        const successRate = totalSubmissions > 0
-            ? (acceptedSubmissions / totalSubmissions) * 100
-            : 0;
 
         const streak = calculateStreak(submissions);
 
@@ -166,7 +171,7 @@ export default function Dashboard() {
             uniqueProblems,
             activeStreak: streak,
             languages,
-            successRate
+            uniqueUsers
         };
     };
 
@@ -275,16 +280,71 @@ export default function Dashboard() {
                         transition={{ delay: 0.1 }}
                         className="bg-gradient-to-br from-emerald-900/40 to-black rounded-xl p-4 border border-emerald-500/30 hover:border-emerald-500/50 transition-all duration-300"
                     >
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2 rounded-lg bg-emerald-500/20">
-                                <Award size={20} className="text-emerald-400" />
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="p-2 rounded-lg bg-emerald-500/20">
+                                        <Award size={20} className="text-emerald-400" />
+                                    </div>
+                                    <h3 className="text-gray-400">Unique Users</h3>
+                                </div>
+                                <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-600">
+                                    {stats.uniqueUsers}
+                                </p>
                             </div>
-                            <h3 className="text-gray-400">Success Rate</h3>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={prepareUniqueUsersList}
+                                className="p-2 rounded-lg hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-all duration-200"
+                            >
+                                <Users size={20} />
+                            </motion.button>
                         </div>
-                        <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-600">
-                            {stats.successRate.toFixed(1)}%
-                        </p>
                     </motion.div>
+
+                    <AnimatePresence>
+                        {showUsersModal && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 z-50"
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.9, opacity: 0 }}
+                                    className="bg-gradient-to-br from-gray-900 to-black rounded-xl p-6 w-full max-w-md border border-emerald-500/30"
+                                >
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-xl font-bold text-emerald-400">Unique Users</h3>
+                                        <button
+                                            onClick={() => setShowUsersModal(false)}
+                                            className="p-2 rounded-lg hover:bg-emerald-500/10 text-gray-400 hover:text-emerald-400 transition-all"
+                                        >
+                                            <X size={20} />
+                                        </button>
+                                    </div>
+                                    <div className="max-h-[60vh] overflow-auto space-y-2">
+                                        {uniqueUsersList.map((user, userIdx) => (
+                                            <a
+                                                key={userIdx}
+                                                href={`https://codeforces.com/profile/${user}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 p-3 rounded-lg hover:bg-emerald-500/10 text-gray-300 hover:text-emerald-400 transition-all"
+                                            >
+                                                <User size={16} className="text-emerald-400" />
+                                                {user}
+                                                <ExternalLink size={14} className="ml-auto opacity-50" />
+                                            </a>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -416,6 +476,18 @@ export default function Dashboard() {
                                     </div>
 
                                     <div className="space-y-2 flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            {!submission.userId.userId ? (
+                                                <span className="text-sm font-medium text-red-500">
+                                                    Unknown
+                                                </span>
+                                            ) : (
+                                                <a href={`https://codeforces.com/profile/${submission.userId.userId}`} target='_blank' className="text-sm font-medium text-gray-200 hover:text-purple-400 transition-colors group">
+                                                    {submission.userId.userId}
+                                                </a>
+                                            )}
+                                        </div>
+
                                         <a
                                             href={submission.problemUrl}
                                             target="_blank"
@@ -428,13 +500,10 @@ export default function Dashboard() {
                                             </span>
                                         </a>
 
-                                        <div className="hidden md:flex items-center gap-4">
-                                            <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                <Globe size={14} className="text-purple-400" />
-                                                <span>{submission.userId.city}, {submission.userId.country}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                <Clock size={14} className="text-purple-400" />
+                                        {/* Added responsive date/time and location for all screen sizes */}
+                                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400">
+                                            <div className="flex items-center gap-2">
+                                                <Clock size={14} className="text-purple-400 flex-shrink-0" />
                                                 <span>
                                                     {new Date(submission.createdAt).toLocaleDateString('en-US', {
                                                         day: 'numeric',
@@ -447,17 +516,10 @@ export default function Dashboard() {
                                                     })}
                                                 </span>
                                             </div>
-                                        </div>
-
-                                        {/* Mobile timestamp only */}
-                                        <div className="md:hidden flex items-center gap-2 text-sm text-gray-400">
-                                            <Clock size={14} className="text-purple-400" />
-                                            <span>
-                                                {new Date(submission.createdAt).toLocaleDateString('en-US', {
-                                                    day: 'numeric',
-                                                    month: 'short'
-                                                })}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <Globe size={14} className="text-purple-400 flex-shrink-0" />
+                                                <span className="truncate">{submission.userId.city}, {submission.userId.region}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -485,6 +547,7 @@ export default function Dashboard() {
                             </div>
                         </motion.div>
                     ))}
+
                 </div>
 
                 {/* Information Modal */}
