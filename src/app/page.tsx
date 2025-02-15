@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, MapPin, AlertCircle, Check, X, Database, Timer, Bug, ExternalLink, Info, Code2, Network, Badge, FileCode, Globe, Copy, Palette, Chrome, BarChart3, Code, Award, Activity, Zap, Brain, Users, User } from 'lucide-react'
+import { Clock, MapPin, AlertCircle, Check, X, Database, Timer, Bug, ExternalLink, Info, Code2, Network, Badge, FileCode, Globe, Copy, Palette, Chrome, BarChart3, Code, Award, Activity, Zap, Brain, Users, User, CircleHelp } from 'lucide-react'
 import { Space_Grotesk } from 'next/font/google'
 import { useRouter } from 'next/navigation'
 import SyntaxHighlighter from 'react-syntax-highlighter'
@@ -73,6 +73,11 @@ export default function Dashboard() {
     };
 
     const statusConfig = {
+        '': {
+            shortName: 'UNK',
+            color: 'bg-gray-500/15 border-gray-500/30 text-gray-400',
+            icon: <CircleHelp size={16} className="text-gray-400" />,
+        },
         'Submitted': {
             shortName: 'SB',
             color: 'bg-gray-500/15 border-gray-500/30 text-gray-400',
