@@ -55,6 +55,8 @@ export default function Dashboard() {
     const [codeLoading, setCodeLoading] = useState(false)
     const [showUsersModal, setShowUsersModal] = useState(false);
     const [uniqueUsersList, setUniqueUsersList] = useState<string[]>([]);
+    const [reloadingData, setReloadingData] = useState(false);
+
     const router = useRouter()
 
     const [stats, setStats] = useState<Statistics>({
@@ -180,6 +182,12 @@ export default function Dashboard() {
         };
     };
 
+    const handleReload = async () => {
+        setReloadingData(true);
+        await fetchSubmissions();
+        setReloadingData(false);
+    }
+
     useEffect(() => {
         const fetchAndCalculateStats = async () => {
             await fetchSubmissions();
@@ -254,13 +262,28 @@ export default function Dashboard() {
     return (
         <div className="min-h-screen bg-black p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
-                <motion.h1
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 mb-8"
-                >
-                    Dashboard
-                </motion.h1>
+                <div className="flex justify-between items-center mb-8">
+                    <motion.h1
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600"
+                    >
+                        Dashboard
+                    </motion.h1>
+
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleReload}
+                        disabled={reloadingData}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:text-purple-300 transition-all duration-200"
+                    >
+                        <div className={`${reloadingData ? 'animate-spin' : ''}`}>
+                            {reloadingData ? '↻' : '⟳'}
+                        </div>
+                        <span>Refresh</span>
+                    </motion.button>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     <motion.div
@@ -459,7 +482,14 @@ export default function Dashboard() {
                     </motion.div>
                 )}
 
-                <div className="space-y-6">
+                <div className="space-y-6 relative">
+                    {reloadingData && (
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center rounded-xl z-10">
+                            <div className="relative">
+                                <div className="animate-spin rounded-full h-12 w-12 border-2 border-purple-500/20 border-t-purple-500" />
+                            </div>
+                        </div>
+                    )}
                     {submissions.map((submission) => (
                         <motion.div
                             key={submission._id}
