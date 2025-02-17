@@ -60,7 +60,7 @@ export default function Dashboard() {
 
     const [filteredSubmissions, setFilteredSubmissions] = useState<CodeData[]>([])
     const [searchQuery, setSearchQuery] = useState('')
-    const [selectedUser, setSelectedUser] = useState<string>('all')
+    const [selectedUser, setSelectedUser] = useState<string>('All Users')
 
     const router = useRouter()
 
@@ -566,6 +566,11 @@ export default function Dashboard() {
                                 <span>Clear Filters</span>
                             </motion.button>
                         </div>
+                    </div>
+
+                    <div className="text-gray-400 mb-4">
+                        Showing {filteredSubmissions.length} {filteredSubmissions.length === 1 ? 'submission' : 'submissions'}
+                        {searchQuery || selectedUser !== 'All Users' ? ` (filtered from ${submissions.length} total)` : ''}
                     </div>
 
                     {filteredSubmissions.length === 0 ? (
