@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, MapPin, AlertCircle, Check, X, Database, Timer, Bug, ExternalLink, Info, Code2, Network, Badge, FileCode, Globe, Copy, Palette, Chrome, BarChart3, Code, Award, Activity, Zap, Brain, Users, User, CircleHelp } from 'lucide-react'
+import { Clock, MapPin, AlertCircle, Check, X, Database, Timer, Bug, ExternalLink, Info, Code2, Network, Badge, FileCode, Globe, Copy, Palette, Chrome, BarChart3, Code, Award, Activity, Zap, Brain, Users, User, CircleHelp, XIcon } from 'lucide-react'
 import { Space_Grotesk } from 'next/font/google'
 import { useRouter } from 'next/navigation'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 import { InfoCard } from './components/InfoCard'
 import { toast } from 'react-hot-toast'
+import { CustomSelect } from './components/CustomSelect'
 
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] })
 interface CodeData {
@@ -57,6 +58,10 @@ export default function Dashboard() {
     const [uniqueUsersList, setUniqueUsersList] = useState<string[]>([]);
     const [reloadingData, setReloadingData] = useState(false);
 
+    const [filteredSubmissions, setFilteredSubmissions] = useState<CodeData[]>([])
+    const [searchQuery, setSearchQuery] = useState('')
+    const [selectedUser, setSelectedUser] = useState<string>('all')
+
     const router = useRouter()
 
     const [stats, setStats] = useState<Statistics>({
@@ -76,9 +81,9 @@ export default function Dashboard() {
 
     const statusConfig = {
         '': {
-            shortName: 'UNK',
-            color: 'bg-gray-500/15 border-gray-500/30 text-gray-400',
-            icon: <CircleHelp size={16} className="text-gray-400" />,
+            shortName: 'ERR',
+            color: 'bg-red-500/15 border-red-500/30 text-red-400',
+            icon: <CircleHelp size={16} className="text-red-400" />,
         },
         'Submitted': {
             shortName: 'SB',
@@ -158,6 +163,33 @@ export default function Dashboard() {
         return streak;
     };
 
+    const handleSearchAndFilter = (query: string, userName: string) => {
+        let result = [...submissions];
+        const q = query.trim().toLowerCase();
+
+        if (userName && userName !== "All Users") {
+            result = result.filter(s => s.userId.userId === userName);
+        }
+
+        if (q) {
+            result = result.filter(s => {
+                const problemName = s.problemName?.toLowerCase() || '';
+                const userId = s.userId.userId?.toLowerCase() || '';
+                const city = s.userId.city?.toLowerCase() || '';
+                const region = s.userId.region?.toLowerCase() || '';
+                const country = s.userId.country?.toLowerCase() || '';
+
+                return problemName.includes(q) ||
+                    userId.includes(q) ||
+                    city.includes(q) ||
+                    region.includes(q) ||
+                    country.includes(q);
+            });
+        }
+
+        setFilteredSubmissions(result);
+    }
+
     const calculateStatistics = (submissions: CodeData[]): Statistics => {
         const totalSubmissions = submissions.length;
         const acceptedSubmissions = submissions.filter(s => s.status === 'Accepted').length;
@@ -202,6 +234,10 @@ export default function Dashboard() {
             setStats(calculatedStats);
         }
     }, [submissions]);
+
+    useEffect(() => {
+        setFilteredSubmissions(submissions)
+    }, [submissions])
 
     const fetchSubmissions = async () => {
         try {
@@ -490,99 +526,156 @@ export default function Dashboard() {
                             </div>
                         </div>
                     )}
-                    {submissions.map((submission) => (
+
+                    <div className="space-y-4 mb-6">
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="flex-1">
+                                <input
+                                    type="text"
+                                    placeholder="Search by problem name, username, country, city or region..."
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value)
+                                        handleSearchAndFilter(e.target.value, selectedUser)
+                                    }}
+                                    className="w-full px-4 py-2.5 rounded-xl bg-gradient-to-r from-gray-900/90 to-black border border-purple-500/30 text-gray-200 placeholder-gray-400 focus:outline-none focus:border-purple-500/50 hover:border-purple-500/50 transition-all duration-300"
+                                />
+                            </div>
+
+                            <CustomSelect
+                                value={selectedUser}
+                                onChange={(value) => {
+                                    setSelectedUser(value);
+                                    handleSearchAndFilter(searchQuery, value);
+                                }}
+                                options={['All Users', ...[...new Set(submissions.map(s => s.userId.userId))].filter(Boolean)]}
+                                placeholder="Select User"
+                            />
+
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setSelectedUser('All Users');
+                                    handleSearchAndFilter('', 'All Users');
+                                }}
+                                className="px-4 py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:text-purple-300 transition-all duration-200 flex items-center gap-2"
+                            >
+                                <XIcon size={16} />
+                                <span>Clear Filters</span>
+                            </motion.button>
+                        </div>
+                    </div>
+
+                    {filteredSubmissions.length === 0 ? (
                         <motion.div
-                            key={submission._id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="group relative overflow-hidden bg-gradient-to-r from-gray-900/90 to-black rounded-2xl p-4 md:p-5 border border-purple-500/20 hover:border-purple-500/40 shadow-lg hover:shadow-purple-500/10 transition-all duration-300"
+                            className="flex flex-col items-center justify-center p-8 rounded-xl bg-gradient-to-r from-gray-900/90 to-black border border-purple-500/20"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                            <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 flex-1">
-                                    <div className={`flex items-center justify-center w-auto sm:w-[70px] gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl backdrop-blur-sm ${statusConfig[submission.status as keyof typeof statusConfig]?.color}`}>
-                                        <div className="rounded-lg">
-                                            {statusConfig[submission.status as keyof typeof statusConfig].icon}
-                                        </div>
-                                        <span className={`text-sm font-bold tracking-wide ${spaceGrotesk.className}`}>
-                                            {statusConfig[submission.status as keyof typeof statusConfig].shortName}
-                                        </span>
-                                    </div>
-
-                                    <div className="space-y-2 flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            {!submission.userId.userId ? (
-                                                <span className="text-sm font-medium text-red-500">
-                                                    Unknown
-                                                </span>
-                                            ) : (
-                                                <a href={`https://codeforces.com/profile/${submission.userId.userId}`} target='_blank' className="text-sm font-medium text-gray-200 hover:text-purple-400 transition-colors group">
-                                                    {submission.userId.userId}
-                                                </a>
-                                            )}
-                                        </div>
-
-                                        <a
-                                            href={submission.problemUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-2 text-gray-200 hover:text-purple-400 transition-colors group"
-                                        >
-                                            <ExternalLink size={16} className="opacity-50 group-hover:opacity-100 flex-shrink-0" />
-                                            <span className="text-sm font-medium truncate">
-                                                {submission.problemName || submission.problemUrl}
-                                            </span>
-                                        </a>
-
-                                        {/* Added responsive date/time and location for all screen sizes */}
-                                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400">
-                                            <div className="flex items-center gap-2">
-                                                <Clock size={14} className="text-purple-400 flex-shrink-0" />
-                                                <span>
-                                                    {new Date(submission.createdAt).toLocaleDateString('en-US', {
-                                                        day: 'numeric',
-                                                        month: 'short',
-                                                        year: 'numeric'
-                                                    })} {new Date(submission.createdAt).toLocaleTimeString('en-US', {
-                                                        hour: 'numeric',
-                                                        minute: '2-digit',
-                                                        hour12: true
-                                                    })}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Globe size={14} className="text-purple-400 flex-shrink-0" />
-                                                <span className="truncate">{submission.userId.city}, {submission.userId.region}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 w-full sm:w-auto">
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => fetchCode(submission._id)}
-                                        className="flex items-center justify-center gap-2 px-4 py-2 md:px-5 md:py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 hover:border-purple-500/50 text-purple-400 hover:text-purple-300 transition-all duration-200 flex-1 sm:flex-initial"
-                                    >
-                                        <Code2 size={16} />
-                                        <span className="font-medium">Code</span>
-                                    </motion.button>
-
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => handleViewDetails(submission)}
-                                        className="p-2.5 rounded-xl bg-gray-800/50 hover:bg-gray-800/70 border border-purple-500/20 hover:border-purple-500/40 text-purple-400 hover:text-purple-300 transition-all duration-200"
-                                    >
-                                        <Info size={16} />
-                                    </motion.button>
-                                </div>
+                            <div className="p-3 rounded-full bg-purple-500/10 mb-4">
+                                <Database size={24} className="text-purple-400" />
                             </div>
+                            <h3 className="text-xl font-semibold text-gray-200 mb-2">No Submissions Found</h3>
+                            <p className="text-gray-400 text-center">Try adjusting your search criteria</p>
                         </motion.div>
-                    ))}
+                    ) : (
+                        <>
+                            {filteredSubmissions.map((submission) => (
+                                <motion.div
+                                    key={submission._id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="group relative overflow-hidden bg-gradient-to-r from-gray-900/90 to-black rounded-2xl p-4 md:p-5 border border-purple-500/20 hover:border-purple-500/40 shadow-lg hover:shadow-purple-500/10 transition-all duration-300"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
+                                    <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 flex-1">
+                                            <div className={`flex items-center justify-center w-auto sm:w-[70px] gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl backdrop-blur-sm ${statusConfig[submission.status as keyof typeof statusConfig]?.color}`}>
+                                                <div className="rounded-lg">
+                                                    {statusConfig[submission.status as keyof typeof statusConfig].icon}
+                                                </div>
+                                                <span className={`text-sm font-bold tracking-wide ${spaceGrotesk.className}`}>
+                                                    {statusConfig[submission.status as keyof typeof statusConfig].shortName}
+                                                </span>
+                                            </div>
+
+                                            <div className="space-y-2 flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    {!submission.userId.userId ? (
+                                                        <span className="text-sm font-medium text-red-500">
+                                                            Unknown
+                                                        </span>
+                                                    ) : (
+                                                        <a href={`https://codeforces.com/profile/${submission.userId.userId}`} target='_blank' className="text-sm font-medium text-gray-200 hover:text-purple-400 transition-colors group">
+                                                            {submission.userId.userId}
+                                                        </a>
+                                                    )}
+                                                </div>
+
+                                                <a
+                                                    href={submission.problemUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 text-gray-200 hover:text-purple-400 transition-colors group"
+                                                >
+                                                    <ExternalLink size={16} className="opacity-50 group-hover:opacity-100 flex-shrink-0" />
+                                                    <span className="text-sm font-medium truncate">
+                                                        {submission.problemName || submission.problemUrl}
+                                                    </span>
+                                                </a>
+
+                                                {/* Added responsive date/time and location for all screen sizes */}
+                                                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400">
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock size={14} className="text-purple-400 flex-shrink-0" />
+                                                        <span>
+                                                            {new Date(submission.createdAt).toLocaleDateString('en-US', {
+                                                                day: 'numeric',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            })} {new Date(submission.createdAt).toLocaleTimeString('en-US', {
+                                                                hour: 'numeric',
+                                                                minute: '2-digit',
+                                                                hour12: true
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Globe size={14} className="text-purple-400 flex-shrink-0" />
+                                                        <span className="truncate">{submission.userId.city}, {submission.userId.region}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => fetchCode(submission._id)}
+                                                className="flex items-center justify-center gap-2 px-4 py-2 md:px-5 md:py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 hover:border-purple-500/50 text-purple-400 hover:text-purple-300 transition-all duration-200 flex-1 sm:flex-initial"
+                                            >
+                                                <Code2 size={16} />
+                                                <span className="font-medium">Code</span>
+                                            </motion.button>
+
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => handleViewDetails(submission)}
+                                                className="p-2.5 rounded-xl bg-gray-800/50 hover:bg-gray-800/70 border border-purple-500/20 hover:border-purple-500/40 text-purple-400 hover:text-purple-300 transition-all duration-200"
+                                            >
+                                                <Info size={16} />
+                                            </motion.button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </>
+                    )}
                 </div>
 
                 {/* Information Modal */}
